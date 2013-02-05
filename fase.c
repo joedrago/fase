@@ -38,8 +38,9 @@ typedef struct Animation
 static HINSTANCE shInstance;
 static HBITMAP shFaseBitmap;
 static Animation sAnim = {0};
-static void getBMPSize(HBITMAP pBitmap, int *w, int *h);
+static int sVisitOnlyOnce = 0;
 
+static void getBMPSize(HBITMAP pBitmap, int *w, int *h);
 static HRGN ScanRegion(HBITMAP pBitmap, BYTE jTranspR, BYTE jTranspG, BYTE jTranspB);
 static void faseThink();
 
@@ -115,6 +116,8 @@ static void faseThink(HWND hWnd)
             faseAnimate(sAnim.dstX, showPosY, hidePosY, 1000);
             break;
         case AS_WAITING:
+            if(sVisitOnlyOnce)
+                PostQuitMessage(0);
             faseAnimate(sAnim.dstX, sAnim.dstY, sAnim.dstY, 2000);
             break;
         }
@@ -188,9 +191,26 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdL
 {
     MSG msg;
     HWND hWnd;
+    const char *c;
 
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
+
+    c = lpCmdLine;
+    for(; *c; ++c)
+    {
+        if(*c == '-')
+        {
+            for(; *c && (*c != ' ') && (*c != '\t'); ++c)
+            {
+                switch(*c)
+                {
+                case 'o':
+                    sVisitOnlyOnce = 1;
+                };
+            }
+        }
+    }
 
     shInstance = hInstance;
     shFaseBitmap = LoadBitmap(shInstance, MAKEINTRESOURCE(IDB_FASE));
