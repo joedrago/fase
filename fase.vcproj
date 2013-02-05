@@ -175,6 +175,10 @@
 				RelativePath=".\fase.c"
 				>
 			</File>
+			<File
+				RelativePath=".\sprite.c"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -183,6 +187,10 @@
 			>
 			<File
 				RelativePath=".\resource.h"
+				>
+			</File>
+			<File
+				RelativePath=".\sprite.h"
 				>
 			</File>
 		</Filter>
