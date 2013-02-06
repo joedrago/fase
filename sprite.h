@@ -44,11 +44,10 @@ typedef struct faseSprite
     int count;
     int duration;
     int currentMove;
+    int t; // how far into currentMove?
 
     int x;
     int y;
-
-    unsigned int start;
 
     struct faseAnimation *anim;
 } faseSprite;
@@ -57,7 +56,7 @@ faseSprite *faseSpriteCreate(int res, const faseMovement *moves, int count, fase
 void faseSpriteDestroy(faseSprite *sprite);
 void faseSpriteReset(faseSprite *sprite, int now);
 void faseSpriteAnimate(faseSprite *sprite, int X, int fromY, int toY, int duration);
-void faseSpriteThink(faseSprite *sprite, int now);
+void faseSpriteThink(faseSprite *sprite, int dt);
 
 void faseSpriteStartup(HINSTANCE hInstance);
 void faseSpriteRand();

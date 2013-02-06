@@ -11,6 +11,7 @@ typedef struct faseAnimation
     int count;
     int duration;
     int start;
+    int last;
     int randX[MAX_RANDS];
     int randY[MAX_RANDS];
     int bigw;

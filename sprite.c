@@ -141,45 +141,70 @@ static int adjustY(int i, int anchor, int last, int half, int *rands, int mod)
     return v;
 }
 
-void faseSpriteThink(faseSprite *sprite, int now)
+void faseSpriteThink(faseSprite *sprite, int dt)
 {
-    if(sprite->currentMove < sprite->count)
+    while(dt > 0)
     {
-        int dt = now - sprite->start;
-        int firstMonitorW = GetSystemMetrics(SM_CXSCREEN);
-        int firstMonitorH = GetSystemMetrics(SM_CYSCREEN);
-        const faseMovement *move = &sprite->moves[sprite->currentMove];
-        int moveX = adjustX(move->x, move->anchor, sprite->x, firstMonitorW >> 1, sprite->anim->randX, (firstMonitorW - sprite->anim->bigw));
-        int moveY = adjustY(move->y, move->anchor, sprite->y, firstMonitorH >> 1, sprite->anim->randY, (firstMonitorH - sprite->anim->bigh));
-
-        if(dt > move->duration)
+        if(sprite->currentMove < sprite->count)
         {
-            dt = move->duration;
-            sprite->x = moveX;
-            sprite->y = moveY;
+            int firstMonitorW = GetSystemMetrics(SM_CXSCREEN);
+            int firstMonitorH = GetSystemMetrics(SM_CYSCREEN);
+            const faseMovement *move = &sprite->moves[sprite->currentMove];
+            int moveX = adjustX(move->x, move->anchor, sprite->x, firstMonitorW >> 1, sprite->anim->randX, (firstMonitorW - sprite->anim->bigw));
+            int moveY = adjustY(move->y, move->anchor, sprite->y, firstMonitorH >> 1, sprite->anim->randY, (firstMonitorH - sprite->anim->bigh));
 
-            if((sprite->currentMove + 1) < sprite->count)
+            if((sprite->t + dt) < move->duration)
             {
-                ++sprite->currentMove;
-                sprite->start = GetTickCount();
-            }
-        }
-
-        //if((sprite->x != moveX) || (sprite->y != moveY))
-        {
-            int x, y;
-            if(move->duration)
-            {
-                x = sprite->x + (int)((moveX - sprite->x) * ((float)dt / move->duration));
-                y = sprite->y + (int)((moveY - sprite->y) * ((float)dt / move->duration));
+                sprite->t += dt;
+                dt = 0;
             }
             else
             {
-                x = moveX;
-                y = moveY;
+                dt -= (move->duration - sprite->t);
+                sprite->t = move->duration;
+                sprite->x = moveX;
+                sprite->y = moveY;
+
+                if((sprite->currentMove + 1) < sprite->count)
+                {
+                    ++sprite->currentMove;
+                    sprite->t = 0;
+                }
+                else
+                {
+                    dt = 0;
+                }
             }
-            SetWindowPos(sprite->hwnd, HWND_TOPMOST, x, y, 0, 0, SWP_NOSIZE|SWP_NOZORDER);
-            SetWindowPos(sprite->hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE|SWP_NOMOVE);
+
+            //if((sprite->x != moveX) || (sprite->y != moveY))
+            {
+                int x, y;
+                if(move->duration)
+                {
+                    x = sprite->x + (int)((moveX - sprite->x) * ((float)sprite->t / move->duration));
+                    y = sprite->y + (int)((moveY - sprite->y) * ((float)sprite->t / move->duration));
+                }
+                else
+                {
+                    x = moveX;
+                    y = moveY;
+                }
+                if(dt == 0)
+                {
+                    if(sprite->t == move->duration)
+                    {
+                        SetWindowPos(sprite->hwnd, HWND_TOPMOST, 0, -1000, 0, 0, SWP_NOSIZE|SWP_NOZORDER);
+                        SetWindowPos(sprite->hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE|SWP_NOMOVE);
+                        ShowWindow(sprite->hwnd, SW_HIDE);
+                    }
+                    else
+                    {
+                        SetWindowPos(sprite->hwnd, HWND_TOPMOST, x, y, 0, 0, SWP_NOSIZE|SWP_NOZORDER);
+                        SetWindowPos(sprite->hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE|SWP_NOMOVE);
+                        ShowWindow(sprite->hwnd, SW_SHOW);
+                    }
+                }
+            }
         }
     }
 }
@@ -189,8 +214,8 @@ void faseSpriteReset(faseSprite *sprite, int now)
     sprite->currentMove = 0;
     sprite->x = -1000000;
     sprite->y = -1000000;
-    sprite->start = now;
-    faseSpriteThink(sprite, now);
+    sprite->t = 0;
+    faseSpriteThink(sprite, 0);
 }
 
 static void getBMPSize(HBITMAP pBitmap, int *w, int *h)

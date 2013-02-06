@@ -64,18 +64,22 @@ void faseAnimationReset(faseAnimation *anim, int now)
         faseSpriteReset(anim->sprites[i], now);
     }
     anim->start = GetTickCount();
+    anim->last = anim->start;
 }
 
 void faseAnimationThink(faseAnimation *anim, int now)
 {
-    int dt = now - anim->start;
+    int total = now - anim->start;
+    int dt = now - anim->last;
 
-    if(dt <= anim->duration)
+    anim->last = now;
+
+    if(total <= anim->duration)
     {
         int i;
         for(i = 0; i < anim->count; ++i)
         {
-            faseSpriteThink(anim->sprites[i], now);
+            faseSpriteThink(anim->sprites[i], dt);
         }
     }
     else
