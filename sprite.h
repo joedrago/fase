@@ -15,6 +15,28 @@
 
 struct faseAnimation;
 
+enum
+{
+    // left, center, right, top, center, bottom
+    ANCHOR_XL = (1 << 3),
+    ANCHOR_XC = (1 << 4),
+    ANCHOR_XR = (1 << 5),
+    ANCHOR_YT = (1 << 0),
+    ANCHOR_YC = (1 << 1),
+    ANCHOR_YB = (1 << 2),
+
+    ANCHOR_L  = (ANCHOR_XL | ANCHOR_YC),
+    ANCHOR_R  = (ANCHOR_XR | ANCHOR_YC),
+    ANCHOR_T  = (ANCHOR_XC | ANCHOR_YT),
+    ANCHOR_B  = (ANCHOR_XC | ANCHOR_YB),
+    ANCHOR_LT = (ANCHOR_XL | ANCHOR_YT),
+    ANCHOR_LB = (ANCHOR_XL | ANCHOR_YB),
+    ANCHOR_RT = (ANCHOR_XR | ANCHOR_YT),
+    ANCHOR_RB = (ANCHOR_XR | ANCHOR_YB),
+
+    ANCHOR_C = (ANCHOR_XC | ANCHOR_YC)
+};
+
 typedef struct faseMovement
 {
     int anchor; // 0-8, clockwise from top left, 8=center

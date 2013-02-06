@@ -11,37 +11,39 @@
 #include "sprite.h"
 #include "animation.h"
 
-#define OFFSCREEN(MS)          { 6, 0, 0, 0 },{ 6, 0, 0, MS }
-#define START(ANCHOR, X, Y)    { ANCHOR, X, Y, 0 }
+#define OFFSCREEN(MS)          { ANCHOR_LT, -1000, -1000, 0 },{ ANCHOR_LT, -1000, -1000, MS }
+#define TELEPORT(ANCHOR, X, Y) { ANCHOR, X, Y, 0 }
 #define MOVE(ANCHOR, X, Y, MS) { ANCHOR, X, Y, MS }
 #define MOVE_X(ANCHOR, X, MS)  { ANCHOR, X, LAST_DST, MS }
 #define MOVE_Y(ANCHOR, Y, MS)  { ANCHOR, LAST_DST, Y, MS }
 #define WAIT(ANCHOR, MS)       { ANCHOR, LAST_DST, LAST_DST, MS }
 
+#define ms +0
+
 static const faseMovement sTrollfaceMoves[] = {
-    START (6, RANDOM0,         0      ),
-    MOVE_Y(6,     150,            2000),
-    WAIT  (6,                     4000),
-    MOVE_Y(6,                  0, 1000),
-    WAIT  (6,                     2000)
+    TELEPORT  (ANCHOR_LB, RANDOM0, -250),
+    MOVE_Y    (ANCHOR_LB, 0, 2000 ms),
+    WAIT      (ANCHOR_LB, 4000 ms),
+    MOVE_Y    (ANCHOR_LB, -250, 1000 ms),
+    WAIT      (ANCHOR_LB, 2000 ms)
 };
 
 static const faseMovement sGlassesMoves[] = {
-    START (0, RANDOM1,      -100      ),
-    MOVE  (6, RANDOM0,       150, 2000),
-    WAIT  (6,                     4000),
-    MOVE_Y(6,            0,       1000),
-    WAIT  (6,                     2000)
+    TELEPORT  (ANCHOR_LT, RANDOM1, -250),
+    MOVE      (ANCHOR_LB, RANDOM0, 0, 2000 ms),
+    WAIT      (ANCHOR_LB, 4000 ms),
+    MOVE_Y    (ANCHOR_LB, -250, 1000 ms),
+    WAIT      (ANCHOR_LB, 2000 ms)
 };
 
 static const faseMovement sDealWithItMoves[] = {
-    { 6,  RANDOM0,        0,    0 },
-    { 6,  RANDOM0,        0, 2000 },
-    { 6,  RANDOM0,      150,    0 },
-    { 6, LAST_DST, LAST_DST, 4000 },
-    { 6,  RANDOM0,        0,    0 },
-    { 6, LAST_DST, LAST_DST, 2000 }
+    OFFSCREEN (2000 ms),
+    TELEPORT  (ANCHOR_LB, RANDOM0, 0),
+    WAIT      (ANCHOR_LB, 4000 ms),
+    OFFSCREEN (2000 ms)
 };
+
+#undef ms
 
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
 {
@@ -56,7 +58,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdL
 
     {
         faseSprite *prevSprite = NULL;
-        for(i = 0; i < 2; ++i)
+        for(i = 0; i < 1; ++i)
         {
             faseSprite **sprites = (faseSprite **)malloc(sizeof(faseSprite *) * 3);
             sprites[0] = faseSpriteCreate(IDB_FASE,       sTrollfaceMoves,  sizeof(sTrollfaceMoves)  / sizeof(faseMovement), prevSprite);
@@ -86,7 +88,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdL
         else
         {
             int now = (int)GetTickCount();
-            for(i = 0; i < 2; ++i)
+            for(i = 0; i < 1; ++i)
             {
                 faseAnimationThink(anims[i], now);
             }

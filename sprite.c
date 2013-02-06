@@ -85,62 +85,6 @@ void faseSpriteDestroy(faseSprite *sprite)
     free(sprite);
 }
 
-static int adjustX(int i, int anchor, int last, int half, int *rands, int mod)
-{
-    int v = i;
-    if(i == LAST_DST)
-        return last;
-    else if((i >= RANDOM0) && (i <= RANDOM9))
-        return (rands[i - RANDOM0] % mod);
-    switch(anchor)
-    {
-    case 0:
-    case 6:
-    case 7:
-        break;
-    case 1:
-    case 5:
-    case 8:
-        v = i + half;
-        break;
-    case 2:
-    case 3:
-    case 4:
-        v = (half * 2) - i;
-        break;
-    };
-
-    return v;
-}
-
-static int adjustY(int i, int anchor, int last, int half, int *rands, int mod)
-{
-    int v = i;
-    if(i == LAST_DST)
-        return last;
-    else if((i >= RANDOM0) && (i <= RANDOM9))
-        return (rands[i - RANDOM0] % mod);
-    switch(anchor)
-    {
-    case 0:
-    case 1:
-    case 2:
-        break;
-    case 3:
-    case 7:
-    case 8:
-        v = i + half;
-        break;
-    case 4:
-    case 5:
-    case 6:
-        v = (half * 2) - i;
-        break;
-    };
-
-    return v;
-}
-
 void faseSpriteThink(faseSprite *sprite, int dt)
 {
     while(dt > 0)
@@ -150,8 +94,57 @@ void faseSpriteThink(faseSprite *sprite, int dt)
             int firstMonitorW = GetSystemMetrics(SM_CXSCREEN);
             int firstMonitorH = GetSystemMetrics(SM_CYSCREEN);
             const faseMovement *move = &sprite->moves[sprite->currentMove];
-            int moveX = adjustX(move->x, move->anchor, sprite->x, firstMonitorW >> 1, sprite->anim->randX, (firstMonitorW - sprite->anim->bigw));
-            int moveY = adjustY(move->y, move->anchor, sprite->y, firstMonitorH >> 1, sprite->anim->randY, (firstMonitorH - sprite->anim->bigh));
+            int moveX, moveY;
+
+            // Calculate X
+            if(move->x == LAST_DST)
+            {
+                moveX = sprite->x;
+            }
+            else if((move->x >= RANDOM0) && (move->x <= RANDOM9))
+            {
+                moveX = sprite->anim->randX[move->x - RANDOM0] % (firstMonitorW - sprite->anim->bigw);
+            }
+            else
+            {
+                if(move->anchor & ANCHOR_XL)
+                {
+                    moveX = move->x;
+                }
+                else if(move->anchor & ANCHOR_XC)
+                {
+                    moveX = move->x + (firstMonitorW >> 1);
+                }
+                else if(move->anchor & ANCHOR_XR)
+                {
+                    moveX = firstMonitorW - move->x - sprite->anim->bigw;
+                }
+            }
+
+            // Calculate Y
+            if(move->y == LAST_DST)
+            {
+                moveY = sprite->y;
+            }
+            else if((move->y >= RANDOM0) && (move->y <= RANDOM9))
+            {
+                moveY = sprite->anim->randY[move->y - RANDOM0] % (firstMonitorH - sprite->anim->bigh);
+            }
+            else
+            {
+                if(move->anchor & ANCHOR_YT)
+                {
+                    moveY = move->y;
+                }
+                else if(move->anchor & ANCHOR_YC)
+                {
+                    moveY = move->y + (firstMonitorH >> 1);
+                }
+                else if(move->anchor & ANCHOR_YB)
+                {
+                    moveY = firstMonitorH - move->y - sprite->anim->bigh;
+                }
+            }
 
             if((sprite->t + dt) < move->duration)
             {
