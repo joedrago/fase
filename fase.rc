@@ -73,6 +73,8 @@ END
 //
 
 IDB_FASE                BITMAP                  "trollface.bmp"
+IDB_GLASSES             BITMAP                  "glasses.bmp"
+IDB_DEALWITHIT          BITMAP                  "dealwithit.bmp"
 #endif    // English (U.S.) resources
 /////////////////////////////////////////////////////////////////////////////
 

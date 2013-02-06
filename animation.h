@@ -3,17 +3,23 @@
 
 #include "sprite.h"
 
+#define MAX_RANDS 10
+
 typedef struct faseAnimation
 {
     faseSprite **sprites;
     int count;
     int duration;
     int start;
+    int randX[MAX_RANDS];
+    int randY[MAX_RANDS];
+    int bigw;
+    int bigh;
 } faseAnimation;
 
 faseAnimation *faseAnimationCreate(faseSprite **sprites, int count);
 void faseAnimationDestroy(faseAnimation *anim);
-void faseAnimationReset(faseAnimation *anim);
-void faseAnimationThink(faseAnimation *anim);
+void faseAnimationReset(faseAnimation *anim, int now);
+void faseAnimationThink(faseAnimation *anim, int now);
 
 #endif

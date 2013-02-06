@@ -6,13 +6,13 @@
 #include <malloc.h>
 #include <memory.h>
 #include <tchar.h>
+#include <time.h>
 
 #include "resource.h"
 #include "sprite.h"
+#include "animation.h"
 
 #define FASE_WINDOW_CLASS "FASE"
-//#define FASE_TIMER_ID 5
-//#define FASE_TIMER_UPDATE_MS 10
 #define FASE_OPACITY 75
 
 static HINSTANCE shInstance;
@@ -21,8 +21,6 @@ LRESULT CALLBACK faseSpriteWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
 static HRGN ScanRegion(HBITMAP pBitmap, BYTE jTranspR, BYTE jTranspG, BYTE jTranspB);
 static BYTE* Get24BitPixels(HBITMAP pBitmap, WORD *pwWidth, WORD *pwHeight);
 static void getBMPSize(HBITMAP pBitmap, int *w, int *h);
-
-extern int sVisitOnlyOnce;
 
 void faseSpriteStartup(HINSTANCE hInstance)
 {
@@ -43,14 +41,17 @@ void faseSpriteStartup(HINSTANCE hInstance)
     wcex.lpszClassName = FASE_WINDOW_CLASS;
     wcex.hIconSm       = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
     RegisterClassEx(&wcex);
+
+    srand((unsigned)time(NULL));
 }
 
-faseSprite *faseSpriteCreate(int res, const faseMovement *moves, int count)
+faseSprite *faseSpriteCreate(int res, const faseMovement *moves, int count, faseSprite *top)
 {
     HRGN rgn;
     int i;
     faseSprite *sprite = (faseSprite *)malloc(sizeof(faseSprite));
 
+    sprite->anim = NULL;
     sprite->moves = moves;
     sprite->count = count;
     sprite->duration = 0;
@@ -60,14 +61,13 @@ faseSprite *faseSpriteCreate(int res, const faseMovement *moves, int count)
     }
     sprite->hbmp = LoadBitmap(shInstance, MAKEINTRESOURCE(res));
     getBMPSize(sprite->hbmp, &sprite->bmpw, &sprite->bmph);
-    sprite->hwnd = CreateWindow(FASE_WINDOW_CLASS, "fase", WS_BORDER, CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, shInstance, NULL);
+    sprite->hwnd = CreateWindow(FASE_WINDOW_CLASS, "fase", WS_BORDER, CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, top ? top->hwnd : NULL, NULL, shInstance, NULL);
     SetWindowLong(sprite->hwnd, GWL_USERDATA, (LONG)(intptr_t)sprite);
     SetWindowLong(sprite->hwnd, GWL_STYLE, WS_CLIPSIBLINGS|WS_CLIPCHILDREN);
     SetWindowLong(sprite->hwnd, GWL_EXSTYLE, WS_EX_LAYERED|WS_EX_TOOLWINDOW|WS_EX_TRANSPARENT);
     SetLayeredWindowAttributes(sprite->hwnd, 0, (255 * FASE_OPACITY) / 100, LWA_ALPHA);
     SetWindowPos(sprite->hwnd, HWND_TOPMOST, 0, -1000, 0, 0, SWP_NOSIZE|SWP_NOZORDER);
     SetWindowPos(sprite->hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE|SWP_NOMOVE);
-//    SetTimer(sprite->hwnd, FASE_TIMER_ID, FASE_TIMER_UPDATE_MS, NULL);
 
     rgn = ScanRegion(sprite->hbmp, 255, 0, 255);
     SetWindowRgn(sprite->hwnd, rgn, TRUE);
@@ -85,13 +85,13 @@ void faseSpriteDestroy(faseSprite *sprite)
     free(sprite);
 }
 
-static int adjustX(int i, int anchor, int last, int half, int rnd)
+static int adjustX(int i, int anchor, int last, int half, int *rands, int mod)
 {
     int v = i;
     if(i == LAST_DST)
         return last;
-    else if(i == RANDOM)
-        return rnd;
+    else if((i >= RANDOM0) && (i <= RANDOM9))
+        return (rands[i - RANDOM0] % mod);
     switch(anchor)
     {
     case 0:
@@ -113,13 +113,13 @@ static int adjustX(int i, int anchor, int last, int half, int rnd)
     return v;
 }
 
-static int adjustY(int i, int anchor, int last, int half, int rnd)
+static int adjustY(int i, int anchor, int last, int half, int *rands, int mod)
 {
     int v = i;
     if(i == LAST_DST)
         return last;
-    else if(i == RANDOM)
-        return rnd;
+    else if((i >= RANDOM0) && (i <= RANDOM9))
+        return (rands[i - RANDOM0] % mod);
     switch(anchor)
     {
     case 0:
@@ -141,20 +141,16 @@ static int adjustY(int i, int anchor, int last, int half, int rnd)
     return v;
 }
 
-void faseSpriteThink(faseSprite *sprite)
+void faseSpriteThink(faseSprite *sprite, int now)
 {
     if(sprite->currentMove < sprite->count)
     {
-        int now = (int)GetTickCount();
         int dt = now - sprite->start;
         int firstMonitorW = GetSystemMetrics(SM_CXSCREEN);
         int firstMonitorH = GetSystemMetrics(SM_CYSCREEN);
         const faseMovement *move = &sprite->moves[sprite->currentMove];
-
-        int randX = rand() % (firstMonitorW - sprite->bmpw);
-        int randY = rand() % (firstMonitorH - sprite->bmph);
-        int moveX = adjustX(move->x, move->anchor, sprite->x, firstMonitorW >> 1, randX);
-        int moveY = adjustY(move->y, move->anchor, sprite->y, firstMonitorH >> 1, randY);
+        int moveX = adjustX(move->x, move->anchor, sprite->x, firstMonitorW >> 1, sprite->anim->randX, (firstMonitorW - sprite->anim->bigw));
+        int moveY = adjustY(move->y, move->anchor, sprite->y, firstMonitorH >> 1, sprite->anim->randY, (firstMonitorH - sprite->anim->bigh));
 
         if(dt > move->duration)
         {
@@ -169,7 +165,7 @@ void faseSpriteThink(faseSprite *sprite)
             }
         }
 
-        if((sprite->x != moveX) || (sprite->y != moveY))
+        //if((sprite->x != moveX) || (sprite->y != moveY))
         {
             int x, y;
             if(move->duration)
@@ -188,13 +184,13 @@ void faseSpriteThink(faseSprite *sprite)
     }
 }
 
-void faseSpriteReset(faseSprite *sprite)
+void faseSpriteReset(faseSprite *sprite, int now)
 {
     sprite->currentMove = 0;
     sprite->x = -1000000;
     sprite->y = -1000000;
-    sprite->start = GetTickCount();
-    faseSpriteThink(sprite);
+    sprite->start = now;
+    faseSpriteThink(sprite, now);
 }
 
 static void getBMPSize(HBITMAP pBitmap, int *w, int *h)
@@ -358,9 +354,6 @@ LRESULT CALLBACK faseSpriteWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
         break;
     case WM_PAINT:
         break;
-    //case WM_TIMER:
-    //    faseSpriteThink(sprite);
-    //    break;
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
