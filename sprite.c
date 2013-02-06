@@ -202,6 +202,11 @@ void faseSpriteThink(faseSprite *sprite, int dt)
     }
 }
 
+void faseSpriteHide(faseSprite *sprite)
+{
+    ShowWindow(sprite->hwnd, SW_HIDE);
+}
+
 void faseSpriteReset(faseSprite *sprite, int now)
 {
     sprite->currentMove = 0;

@@ -231,6 +231,14 @@
 				RelativePath=".\trollface.bmp"
 				>
 			</File>
+			<File
+				RelativePath=".\trollfaceflipped.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\trollfaceleft.bmp"
+				>
+			</File>
 		</Filter>
 	</Files>
 	<Globals>

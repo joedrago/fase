@@ -76,6 +76,7 @@ typedef struct faseSprite
 
 faseSprite *faseSpriteCreate(int res, const faseMovement *moves, int count, faseSprite *top); // top = "which sprite is the new sprite on top of?"
 void faseSpriteDestroy(faseSprite *sprite);
+void faseSpriteHide(faseSprite *sprite);
 void faseSpriteReset(faseSprite *sprite, int now);
 void faseSpriteAnimate(faseSprite *sprite, int X, int fromY, int toY, int duration);
 void faseSpriteThink(faseSprite *sprite, int dt);

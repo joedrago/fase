@@ -20,7 +20,8 @@ typedef struct faseAnimation
 
 faseAnimation *faseAnimationCreate(faseSprite **sprites, int count);
 void faseAnimationDestroy(faseAnimation *anim);
+void faseAnimationHide(faseAnimation *anim);
 void faseAnimationReset(faseAnimation *anim, int now);
-void faseAnimationThink(faseAnimation *anim, int now);
+int faseAnimationThink(faseAnimation *anim, int now);
 
 #endif

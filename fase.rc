@@ -75,6 +75,8 @@ END
 IDB_FASE                BITMAP                  "trollface.bmp"
 IDB_GLASSES             BITMAP                  "glasses.bmp"
 IDB_DEALWITHIT          BITMAP                  "dealwithit.bmp"
+IDB_FASEFLIPPED         BITMAP                  "trollfaceflipped.bmp"
+IDB_FASELEFT            BITMAP                  "trollfaceleft.bmp"
 #endif    // English (U.S.) resources
 /////////////////////////////////////////////////////////////////////////////
 

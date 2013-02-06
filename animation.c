@@ -51,6 +51,15 @@ void faseAnimationDestroy(faseAnimation *anim)
     free(anim);
 }
 
+void faseAnimationHide(faseAnimation *anim)
+{
+    int i;
+    for(i = 0; i < anim->count; ++i)
+    {
+        faseSpriteHide(anim->sprites[i]);
+    }
+}
+
 void faseAnimationReset(faseAnimation *anim, int now)
 {
     int i;
@@ -67,7 +76,7 @@ void faseAnimationReset(faseAnimation *anim, int now)
     anim->last = anim->start;
 }
 
-void faseAnimationThink(faseAnimation *anim, int now)
+int faseAnimationThink(faseAnimation *anim, int now)
 {
     int total = now - anim->start;
     int dt = now - anim->last;
@@ -81,9 +90,11 @@ void faseAnimationThink(faseAnimation *anim, int now)
         {
             faseSpriteThink(anim->sprites[i], dt);
         }
+        return 1;
     }
     else
     {
         faseAnimationReset(anim, now);
+        return 0;
     }
 }
