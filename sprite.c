@@ -11,8 +11,8 @@
 #include "sprite.h"
 
 #define FASE_WINDOW_CLASS "FASE"
-#define FASE_TIMER_ID 5
-#define FASE_TIMER_UPDATE_MS 10
+//#define FASE_TIMER_ID 5
+//#define FASE_TIMER_UPDATE_MS 10
 #define FASE_OPACITY 75
 
 static HINSTANCE shInstance;
@@ -45,16 +45,21 @@ void faseSpriteStartup(HINSTANCE hInstance)
     RegisterClassEx(&wcex);
 }
 
-static void faseRegion(HWND hWnd)
-{
-}
-
-faseSprite *faseSpriteCreate(int res)
+faseSprite *faseSpriteCreate(int res, const faseMovement *moves, int count)
 {
     HRGN rgn;
+    int i;
     faseSprite *sprite = (faseSprite *)malloc(sizeof(faseSprite));
 
+    sprite->moves = moves;
+    sprite->count = count;
+    sprite->duration = 0;
+    for(i = 0; i < sprite->count; ++i)
+    {
+        sprite->duration += sprite->moves[i].duration;
+    }
     sprite->hbmp = LoadBitmap(shInstance, MAKEINTRESOURCE(res));
+    getBMPSize(sprite->hbmp, &sprite->bmpw, &sprite->bmph);
     sprite->hwnd = CreateWindow(FASE_WINDOW_CLASS, "fase", WS_BORDER, CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, shInstance, NULL);
     SetWindowLong(sprite->hwnd, GWL_USERDATA, (LONG)(intptr_t)sprite);
     SetWindowLong(sprite->hwnd, GWL_STYLE, WS_CLIPSIBLINGS|WS_CLIPCHILDREN);
@@ -62,7 +67,7 @@ faseSprite *faseSpriteCreate(int res)
     SetLayeredWindowAttributes(sprite->hwnd, 0, (255 * FASE_OPACITY) / 100, LWA_ALPHA);
     SetWindowPos(sprite->hwnd, HWND_TOPMOST, 0, -1000, 0, 0, SWP_NOSIZE|SWP_NOZORDER);
     SetWindowPos(sprite->hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE|SWP_NOMOVE);
-    SetTimer(sprite->hwnd, FASE_TIMER_ID, FASE_TIMER_UPDATE_MS, NULL);
+//    SetTimer(sprite->hwnd, FASE_TIMER_ID, FASE_TIMER_UPDATE_MS, NULL);
 
     rgn = ScanRegion(sprite->hbmp, 255, 0, 255);
     SetWindowRgn(sprite->hwnd, rgn, TRUE);
@@ -80,72 +85,115 @@ void faseSpriteDestroy(faseSprite *sprite)
     free(sprite);
 }
 
+static int adjustX(int i, int anchor, int last, int half, int rnd)
+{
+    int v = i;
+    if(i == LAST_DST)
+        return last;
+    else if(i == RANDOM)
+        return rnd;
+    switch(anchor)
+    {
+    case 0:
+    case 6:
+    case 7:
+        break;
+    case 1:
+    case 5:
+    case 8:
+        v = i + half;
+        break;
+    case 2:
+    case 3:
+    case 4:
+        v = (half * 2) - i;
+        break;
+    };
+
+    return v;
+}
+
+static int adjustY(int i, int anchor, int last, int half, int rnd)
+{
+    int v = i;
+    if(i == LAST_DST)
+        return last;
+    else if(i == RANDOM)
+        return rnd;
+    switch(anchor)
+    {
+    case 0:
+    case 1:
+    case 2:
+        break;
+    case 3:
+    case 7:
+    case 8:
+        v = i + half;
+        break;
+    case 4:
+    case 5:
+    case 6:
+        v = (half * 2) - i;
+        break;
+    };
+
+    return v;
+}
+
 void faseSpriteThink(faseSprite *sprite)
 {
-    int now = (int)GetTickCount();
-    int dt = now - sprite->start;
-    if(sprite->duration && (dt <= sprite->duration))
+    if(sprite->currentMove < sprite->count)
     {
-        // continue animation
+        int now = (int)GetTickCount();
+        int dt = now - sprite->start;
+        int firstMonitorW = GetSystemMetrics(SM_CXSCREEN);
+        int firstMonitorH = GetSystemMetrics(SM_CYSCREEN);
+        const faseMovement *move = &sprite->moves[sprite->currentMove];
 
-        if((sprite->srcX != sprite->dstX) || (sprite->srcY != sprite->dstY))
+        int randX = rand() % (firstMonitorW - sprite->bmpw);
+        int randY = rand() % (firstMonitorH - sprite->bmph);
+        int moveX = adjustX(move->x, move->anchor, sprite->x, firstMonitorW >> 1, randX);
+        int moveY = adjustY(move->y, move->anchor, sprite->y, firstMonitorH >> 1, randY);
+
+        if(dt > move->duration)
         {
-            int x = sprite->srcX + (int)((sprite->dstX - sprite->srcX) * ((float)dt / sprite->duration));
-            int y = sprite->srcY + (int)((sprite->dstY - sprite->srcY) * ((float)dt / sprite->duration));
+            dt = move->duration;
+            sprite->x = moveX;
+            sprite->y = moveY;
+
+            if((sprite->currentMove + 1) < sprite->count)
+            {
+                ++sprite->currentMove;
+                sprite->start = GetTickCount();
+            }
+        }
+
+        if((sprite->x != moveX) || (sprite->y != moveY))
+        {
+            int x, y;
+            if(move->duration)
+            {
+                x = sprite->x + (int)((moveX - sprite->x) * ((float)dt / move->duration));
+                y = sprite->y + (int)((moveY - sprite->y) * ((float)dt / move->duration));
+            }
+            else
+            {
+                x = moveX;
+                y = moveY;
+            }
             SetWindowPos(sprite->hwnd, HWND_TOPMOST, x, y, 0, 0, SWP_NOSIZE|SWP_NOZORDER);
             SetWindowPos(sprite->hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE|SWP_NOMOVE);
         }
     }
-    else
-    {
-        // setup next animation
-
-        faseSpriteState nextState = (sprite->state + 1) % FSS_COUNT;
-        int firstMonitorW = GetSystemMetrics(SM_CXSCREEN);
-        int firstMonitorH = GetSystemMetrics(SM_CYSCREEN);
-        int faseW, faseH;
-        int hidePosY, showPosY;
-
-        getBMPSize(sprite->hbmp, &faseW, &faseH);
-        hidePosY = firstMonitorH;
-        showPosY = firstMonitorH - (faseH / 3);
-
-        switch(nextState)
-        {
-        case FSS_ENTERING:
-            faseSpriteAnimate(sprite, rand() % (firstMonitorW - faseW), hidePosY, showPosY, 2000);
-            break;
-        case FSS_SHOWING:
-            faseSpriteAnimate(sprite, sprite->dstX, sprite->dstY, sprite->dstY, 4000);
-            break;
-        case FSS_LEAVING:
-            faseSpriteAnimate(sprite, sprite->dstX, showPosY, hidePosY, 1000);
-            break;
-        case FSS_WAITING:
-            if(sVisitOnlyOnce)
-                PostQuitMessage(0);
-            faseSpriteAnimate(sprite, sprite->dstX, sprite->dstY, sprite->dstY, 2000);
-            break;
-        }
-        sprite->state = nextState;
-    }
 }
 
-void faseSpriteAnimate(faseSprite *sprite, int X, int fromY, int toY, int duration)
+void faseSpriteReset(faseSprite *sprite)
 {
-    sprite->srcX = X;
-    sprite->srcY = fromY;
-    sprite->dstX = X;
-    sprite->dstY = toY;
-
-    sprite->duration = duration;
+    sprite->currentMove = 0;
+    sprite->x = -1000000;
+    sprite->y = -1000000;
     sprite->start = GetTickCount();
-    faseSpriteThink(sprite);
-}
-
-void faseSpriteStart(faseSprite *sprite)
-{
-    sprite->state = FSS_WAITING;
     faseSpriteThink(sprite);
 }
 
@@ -310,9 +358,9 @@ LRESULT CALLBACK faseSpriteWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
         break;
     case WM_PAINT:
         break;
-    case WM_TIMER:
-        faseSpriteThink(sprite);
-        break;
+    //case WM_TIMER:
+    //    faseSpriteThink(sprite);
+    //    break;
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
